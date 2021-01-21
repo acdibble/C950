@@ -34,7 +34,7 @@ class Truck:
     def get_time(self) -> float:
         return (8 * 60) + (self.miles_traveled / 18 * 60)
 
-    def empty(self) -> bool:
+    def __empty(self) -> bool:
         return len(self.packages) == 0
 
     def full(self) -> bool:
@@ -42,7 +42,7 @@ class Truck:
 
 
     def location(self) -> str:
-        return 'HUB' if self.empty() else self.packages[-1].get_address()
+        return 'HUB' if self.__empty() else self.packages[-1].address
 
     def pretty_time(self) -> str:
         time = self.get_time()
@@ -54,10 +54,14 @@ class Truck:
         while len(self.packages) != 0:
             previous = current
             pkg = self.packages.pop(0)
-            current = pkg.get_address()
-            self.miles_traveled += graph.get_distance(previous, current)
+            current = pkg.address
+            self.miles_traveled += graph.distance_between(previous, current)
             pkg.set_delivered(self.get_time())
 
-        self.miles_traveled += graph.get_distance(current, 'HUB')
+        self.miles_traveled += graph.distance_between(current, 'HUB')
 
-        print(self.miles_traveled, self.pretty_time())
+    def location(self):
+        if len(self.packages) != 0:
+            return self.packages[-1].address
+        else:
+            return 'HUB'

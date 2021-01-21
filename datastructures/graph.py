@@ -20,7 +20,7 @@ class Graph:
     def __add_edge(self, vertex1: Place, vertex2: Place, distance: float) -> None:
         self.__edges.get(vertex1).put(vertex2, distance)
 
-    def get_distance(self, vertex1: StrOrPlace, vertex2: StrOrPlace) -> float:
+    def distance_between(self, vertex1: StrOrPlace, vertex2: StrOrPlace) -> float:
         return self.__edges.get(vertex1).get(vertex2)
 
     def debug(self):

@@ -10,3 +10,7 @@ def replace(m: Match[str]) -> str:
 
 def normalize_address(address: str) -> str:
     return re.sub(r'(?i)(north|south|east|west|\n)', replace, address.strip())
+
+
+def minutes_to_clock(minutes: float) -> str:
+    return f'{int(minutes / 60)}:{(int(minutes) % 60):02}'
