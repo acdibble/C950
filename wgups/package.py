@@ -10,6 +10,12 @@ if TYPE_CHECKING:
 EOD = 24 * 60
 
 
+class ANSICodes:
+    OKGREEN = '\033[92m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+
 class Package:
     class Status(Enum):
         AT_HUB = auto()
@@ -41,27 +47,29 @@ class Package:
         self.__city = city
         self.__state = state
         self.__zipcode = zipcode
-        self.__deadline = self.parse_time(deadline)
+        self.deadline = self.parse_time(deadline)
         self.__mass = int(mass)
-        self.__status = self.Status.AT_HUB
+        self.status = self.Status.AT_HUB
         self.__parse_note(notes)
         self.address = utils.normalize_address(
             f'{self.__address} ({self.__zipcode})')
 
     def __str__(self) -> str:
-        deadline = utils.minutes_to_clock(self.__deadline)
+        deadline = utils.minutes_to_clock(self.deadline)
         delivered_at = utils.minutes_to_clock(self.time_delivered)
         info = [f'id: {self.id}', f'address: {self.__address}',
-                f'status: {self.__status}', f'deadline: {deadline}']
+                f'status: {self.status}', f'deadline: {deadline}']
         if self.is_delivered():
             info.append(f'delivered at: {delivered_at}')
+            on_time = self.is_delivered() and self.time_delivered < self.deadline
+            code = ANSICodes.OKGREEN if on_time else ANSICodes.FAIL
             info.append(
-                f'delivered on time: {self.is_delivered() and self.time_delivered < self.__deadline}')
+                f'delivered on time: {code}{on_time}{ANSICodes.ENDC}')
 
         return str.join(', ', info)
 
     def priority(self, time: float) -> bool:
-        return self.__at_hub() and self.__deadline < EOD and self.__available_at <= time
+        return self.at_hub() and self.deadline < EOD and self.__available_at <= time
 
     def available_for(self, truck: Truck, exclude: set[Package] = set()) -> bool:
         if self.__wrong_address:
@@ -70,7 +78,7 @@ class Package:
         if self.__available_at > truck.get_time():
             return False
 
-        if not self.__at_hub():
+        if not self.at_hub():
             return False
 
         if self.__required_truck != None and self.__required_truck != truck.number:
@@ -103,17 +111,21 @@ class Package:
             self.__wrong_address = True
 
     def set_en_route(self) -> None:
-        self.__status = self.Status.EN_ROUTE
+        if self.status == self.Status.EN_ROUTE:
+            raise Exception
+        self.status = self.Status.EN_ROUTE
 
     def set_delivered(self, time: float) -> None:
-        self.__status = self.Status.DELIVERED
+        if self.status == self.Status.DELIVERED:
+            raise Exception
+        self.status = self.Status.DELIVERED
         self.time_delivered = time
 
     def is_delivered(self) -> bool:
-        return self.__status == self.Status.DELIVERED
+        return self.status == self.Status.DELIVERED
 
-    def __at_hub(self) -> bool:
-        return self.__status == self.Status.AT_HUB
+    def at_hub(self) -> bool:
+        return self.status == self.Status.AT_HUB
 
     def has_dependencies(self) -> bool:
         return len(self.dependent_packages) != 0

@@ -1,9 +1,10 @@
-from typing import Union
+from typing import Iterable, Union, cast
 from utils import minutes_to_clock
 from wgups.truck import Truck
 from wgups import Place, Package
 from datastructures import Graph
 import csv
+
 
 all_packages: list[Package] = []
 
@@ -18,7 +19,7 @@ for p in all_packages:
         other.dependent_packages.add(p.id)
         p.dependencies.add(other)
 
-graph = Graph()
+graph = Graph[Union[Place, str]]()
 
 with open('distances.csv') as f:
     places: list[Place] = []
@@ -39,40 +40,23 @@ def all_delivered() -> bool:
 HUB = 'HUB'
 
 
-def sort_by_closest(pkgs: list[Package], start: Union[str, Place] = HUB):
-    pkgs.sort(key=lambda p: graph.distance_between(start, p.address))
-    return pkgs
-
-
-def find_closest(pkgs: list[Package], loc: Union[str, Place]) -> Package:
+def find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
     shortest_dist = float('inf')
-    closest = pkgs[0]
+    closest = None
     for p in pkgs:
         dist = graph.distance_between(p.address, loc)
         if dist < shortest_dist:
             shortest_dist = dist
             closest = p
 
-    return closest
+    return cast(Package, closest)
 
 
-def get_priority_packages(time: int) -> list[Package]:
-    priority_packages = set()
-    for p in all_packages:
-        if p.priority(time):
-            priority_packages.add(p)
-            for dep in p.dependencies:
-                priority_packages.add(dep)
-    priority_packages = sort_by_closest(list(priority_packages))
-
-    return priority_packages
-
-
-trucks = [Truck(), Truck()]
+all_trucks = [Truck(), Truck()]
 base_time = 8 * 60
 
 
-def deliver_packages():
+def deliver_packages(trucks: list[Truck]):
     for truck in trucks:
         truck.deliver(graph)
         print(truck.number, truck.location(),
@@ -83,32 +67,67 @@ def deliver_packages():
                 p.update_address()
 
 
-def distribute_packages(packages: list[Package]):
+def distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
     for p in packages:
-        dists = [float('inf'), float('inf')]
-        for i in range(2):
-            if p.available_for(trucks[i]) and not trucks[i].full():
-                dists[i] = graph.distance_between(
-                    trucks[i].location(), p.address)
-        dist1, dist2 = dists
-        truck = 0 if dist1 < dist2 else 1
-        trucks[truck].load_package(p)
+        shortest = float('inf')
+        closest = None
+        for truck in trucks:
+            if p.available_for(truck) and not truck.full():
+                dist = graph.distance_between(truck.location(), p.address)
+                if dist < shortest:
+                    shortest = dist
+                    closest = truck
+
+        if closest != None:
+            closest.load_package(p)
 
 
-priority_packages = get_priority_packages(base_time)
-while len(priority_packages) != 0:
-    distribute_packages(priority_packages)
-    priority_packages.clear()
+def load_priority_packages(trucks: list[Truck]):
+    priority_packages = [p for p in all_packages if any([p.priority(
+        t.get_time()) for t in trucks]) and any([p.available_for(t) for t in trucks])]
 
-    deliver_packages()
+    trucks.sort(key=lambda t: t.get_time())
     for truck in trucks:
-        priority_packages += [p for p in all_packages if p.priority(
-            truck.get_time()) and p.available_for(truck)]
+        while not truck.full() and len(priority_packages) != 0:
+            closest = find_closest(priority_packages, truck.location())
+            if not closest.at_hub():
+                priority_packages.remove(closest)
+                continue
+            if closest == None:
+                break
+            deps = closest.dependencies
+            for dep in deps:
+                deps = deps.union(cast(set[Package], dep.dependencies))
+            deps.add(closest)
+            if truck.capacity() >= len(deps):
+                while len(deps) != 0:
+                    pkg = find_closest(deps, truck.location())
+                    deps.remove(pkg)
+                    if not pkg.at_hub():
+                        continue
+                    if pkg in priority_packages:
+                        priority_packages.remove(pkg)
+                    truck.load_package(pkg)
+                    for p in [p for p in all_packages if p.address == pkg.address and p.available_for(truck)]:
+                        if not truck.full():
+                            truck.load_package(p)
+
+
+def load_packages(trucks: list[Truck]) -> None:
+    remaining_packages = [p for p in all_packages if not p.is_delivered()]
+    distribute_packages(remaining_packages, trucks)
+    deliver_packages(trucks)
+
 
 while not all_delivered():
-    remaining_packages = [p for p in all_packages if not p.is_delivered()]
-    distribute_packages(remaining_packages)
-    deliver_packages()
+    priority_remaining = True
+    while priority_remaining:
+        load_priority_packages(all_trucks)
+        if priority_remaining := any([not truck.empty() for truck in all_trucks]):
+            deliver_packages(all_trucks)
+
+    load_packages(all_trucks)
+
 
 for package in all_packages:
     print(package)

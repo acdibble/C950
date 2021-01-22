@@ -15,12 +15,7 @@ class Place:
         return self.address
 
     def __eq__(self, o: Union[str, Place]) -> bool:
-        if isinstance(o, Place):
-            return self.address == o.address
-        elif isinstance(o, str):
-            return self.address == o
-
-        raise TypeError
+        return hash(self) == hash(o)
 
     def __hash__(self) -> int:
         return hash(self.address)
