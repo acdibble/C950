@@ -1,19 +1,13 @@
 from __future__ import annotations
 from enum import Enum, auto
 import re
-from typing import Optional, TYPE_CHECKING
-import utils
+from typing import Optional, TYPE_CHECKING, cast
+from utils import minutes_to_clock, normalize_address, ANSICodes
 
 if TYPE_CHECKING:
     from wgups.truck import Truck
 
 EOD = 24 * 60
-
-
-class ANSICodes:
-    OKGREEN = '\033[92m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
 
 
 class Package:
@@ -33,38 +27,40 @@ class Package:
         return ((int(hours) + offset) * 60) + int(minutes)
 
     __required_truck: Optional[int] = None
+    __loaded_at: Optional[float] = None
+    __delivered_by: Optional[int] = None
+    delivered_at: Optional[float] = None
     __wrong_address = False
-    __available_at = float(8 * 60)
+    __available_at = 0.0
     dependencies: set[Package]
     dependent_packages: set[int]
-    time_delivered: float = 0
 
     def __init__(self, id: str, address: str, city: str, state: str, zipcode: str, deadline: str, mass: str, notes: str):
         self.dependent_packages = set[int]()
         self.dependencies = set[Package]()
         self.id = int(id)
-        self.__address = address
-        self.__city = city
-        self.__state = state
-        self.__zipcode = zipcode
+        self.street_address = address
+        self.city = city
+        self.state = state
+        self.zipcode = zipcode
         self.deadline = self.parse_time(deadline)
-        self.__mass = int(mass)
-        self.status = self.Status.AT_HUB
+        self.mass = int(mass)
+        self.__status = self.Status.AT_HUB
         self.__parse_note(notes)
-        self.address = utils.normalize_address(
-            f'{self.__address} ({self.__zipcode})')
+        self.address = normalize_address(
+            f'{self.street_address} ({self.zipcode})')
 
     def __str__(self) -> str:
-        deadline = utils.minutes_to_clock(self.deadline)
-        delivered_at = utils.minutes_to_clock(self.time_delivered)
-        info = [f'id: {self.id}', f'address: {self.__address}',
-                f'status: {self.status}', f'deadline: {deadline}']
-        if self.is_delivered():
-            info.append(f'delivered at: {delivered_at}')
-            on_time = self.is_delivered() and self.time_delivered < self.deadline
-            code = ANSICodes.OKGREEN if on_time else ANSICodes.FAIL
+        deadline = minutes_to_clock(self.deadline)
+        info = [f'id: {self.id}', f'address: {self.address}',
+                f'status: {self.__status}', f'deadline: {deadline}']
+        if self.delivered_at is not None:
             info.append(
-                f'delivered on time: {code}{on_time}{ANSICodes.ENDC}')
+                f'delivered at: {minutes_to_clock(self.delivered_at)}')
+            on_time = self.delivered_at < self.deadline
+            colored = ANSICodes.green(
+                on_time) if on_time else ANSICodes.red(on_time)
+            info.append(f'delivered on time: {colored}')
 
         return str.join(', ', info)
 
@@ -81,7 +77,7 @@ class Package:
         if not self.at_hub():
             return False
 
-        if self.__required_truck != None and self.__required_truck != truck.number:
+        if self.__required_truck is not None and self.__required_truck != truck.number:
             return False
 
         deps_available = True
@@ -102,33 +98,30 @@ class Package:
             self.dependent_packages = set[int](
                 map(int, re.findall(r'\d+', notes)))
         else:
-            self.__address = None
-            self.__city = None
-            self.__state = None
-            self.__zipcode = None
             self.address = ''
             self.__available_at = self.parse_time('10:20 am')
             self.__wrong_address = True
 
-    def set_en_route(self) -> None:
-        if self.status == self.Status.EN_ROUTE:
+    def set_en_route(self, truck: Truck) -> None:
+        if self.__status == self.Status.EN_ROUTE:
             raise Exception
-        self.status = self.Status.EN_ROUTE
+        if (self.__required_truck or truck.number) != truck.number:
+            raise Exception
+        self.__delivered_by = truck.number
+        self.__loaded_at = truck.get_time()
+        self.__status = self.Status.EN_ROUTE
 
     def set_delivered(self, time: float) -> None:
-        if self.status == self.Status.DELIVERED:
+        if self.__status == self.Status.DELIVERED:
             raise Exception
-        self.status = self.Status.DELIVERED
-        self.time_delivered = time
+        self.__status = self.Status.DELIVERED
+        self.delivered_at = time
 
     def is_delivered(self) -> bool:
-        return self.status == self.Status.DELIVERED
+        return self.__status == self.Status.DELIVERED
 
     def at_hub(self) -> bool:
-        return self.status == self.Status.AT_HUB
-
-    def has_dependencies(self) -> bool:
-        return len(self.dependent_packages) != 0
+        return self.__status == self.Status.AT_HUB
 
     def correct_address_available(self, time: float):
         return self.__wrong_address and self.__available_at <= time
@@ -136,3 +129,48 @@ class Package:
     def update_address(self):
         self.__wrong_address = False
         self.address = '410 S State St (84111)'
+        self.street_address = '410 S State St'
+        self.zipcode = '84111'
+
+    def status(self, time: int) -> str:
+        if self.__available_at > time:
+            return f'Delayed, package available at {minutes_to_clock(self.__available_at)}'
+
+        loaded_at = cast(float, self.__loaded_at)
+        if time < loaded_at:
+            return f'At hub, expected load time {minutes_to_clock(loaded_at)}'
+
+        delivered_at = cast(float, self.delivered_at)
+        delivered_by = cast(int, self.__delivered_by)
+        if time < delivered_at:
+            return f'On truck {delivered_by}, loaded at {minutes_to_clock(loaded_at)}, expected delivery time {minutes_to_clock(delivered_at)} '
+
+        return f'Delivered at {minutes_to_clock(delivered_at)} by truck {delivered_by}'
+
+    def formatted_deadline(self) -> str:
+        if self.deadline == EOD:
+            return 'EOD'
+
+        return minutes_to_clock(self.deadline)
+
+    def info(self, time: int) -> str:
+        status = ''
+        if (self.delivered_at or float('inf')) <= time:
+            status = ANSICodes.green(self.Status.DELIVERED)
+        elif (self.__loaded_at or float('inf')) <= time:
+            status = ANSICodes.cyan(self.Status.EN_ROUTE)
+        else:
+            status = ANSICodes.blue(self.Status.AT_HUB)
+
+        info = [f'id: {self.id}', f'address: {self.address}',
+                f'status: {status}', f'deadline: {minutes_to_clock(self.deadline)}']
+
+        if (self.delivered_at or float('inf')) <= time:
+            info.append(
+                f'delivered at: {minutes_to_clock(self.delivered_at)}')
+            on_time = self.delivered_at < self.deadline
+            colored = ANSICodes.green(
+                on_time) if on_time else ANSICodes.red(on_time)
+            info.append(f'delivered on time: {colored}')
+
+        return str.join('\t', info)

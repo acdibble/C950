@@ -1,10 +1,6 @@
 from __future__ import annotations
-from typing import Generic, TYPE_CHECKING, TypeVar, Union
+from typing import Generic, TypeVar
 from datastructures.hashmap import HashMap
-if TYPE_CHECKING:
-    from wgups.place import Place
-
-StrOrPlace = Union[str, 'Place']
 
 T = TypeVar('T')
 

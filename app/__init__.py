@@ -1,0 +1,60 @@
+from wgups.package import Package
+from datastructures.hashmap import HashMap
+from utils import clock_to_minutes
+
+instructions = '''
+Please select an option from the list:
+    1. Get info on a specific package
+    2. Get info on all packages
+    3. Get one-liner info on all packages
+'''
+
+
+def get_input(prompt: str) -> str:
+    try:
+        return input(f'{prompt}\n> ')
+    except EOFError:
+        exit(0)
+
+
+def print_package(package: Package, time: int) -> None:
+    print(f'Package ID: {package.id}')
+    print(f'Current status: {package.status(time)}')
+    print(f'Package due by: {package.formatted_deadline()}')
+    print(f'Package weight: {package.mass}')
+    print('Delivery address:')
+    print(package.street_address)
+    print(f'{package.city}, {package.state} {package.zipcode}')
+    print()
+
+
+def start_app(packages: HashMap[str, Package]) -> None:
+    print('Welcome to WGUPS Package Tracking.')
+    while True:
+        selection = get_input(instructions)
+
+        if selection == 'quit':
+            break
+
+        time = 0
+        while time == 0:
+            try:
+                time = clock_to_minutes(
+                    get_input('Please enter a time in the format of HH:MM'))
+            except:
+                continue
+
+        if selection == '1':
+            while not (pkg_num := get_input('Please enter a valid package ID')) in packages:
+                print(f'Package with ID "{pkg_num}" was not found')
+            print_package(packages.get(pkg_num), time)
+
+        elif selection == '2':
+            for (_, package) in packages:
+                print_package(package, time)
+
+        elif selection == '3':
+            package_list = [package for (_, package) in packages]
+            package_list.sort(key=lambda p: p.id)
+            for package in package_list:
+                print(package.info(time))

@@ -75,3 +75,7 @@ class HashMap(Generic[Key, Value]):
                     return True
 
         return False
+
+    def __iter__(self):
+        for bucket in self.__storage:
+            yield from bucket
