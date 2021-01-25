@@ -4,8 +4,9 @@ from datastructures.hashmap import HashMap
 from wgups.schedule import schedule_delivery
 
 
-packages = HashMap[str, Package]()
-for p in schedule_delivery():
-    packages.put(str(p.id), p)
+package_map = HashMap[str, Package]()
+packages, trucks = schedule_delivery()
+for p in packages:
+    package_map.put(str(p.id), p)
 
-start_app(packages)
+start_app(package_map, trucks)

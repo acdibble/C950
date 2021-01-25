@@ -93,7 +93,7 @@ def load_packages(trucks: list[Truck]) -> None:
     deliver_packages(trucks)
 
 
-def schedule_delivery() -> list[Package]:
+def schedule_delivery() -> tuple[list[Package], list[Truck]]:
     global __ALL_TRUCKS__
     global __ALL_PACKAGES__
     global __GRAPH__
@@ -131,4 +131,4 @@ def schedule_delivery() -> list[Package]:
 
         load_packages(__ALL_TRUCKS__)
 
-    return __ALL_PACKAGES__
+    return __ALL_PACKAGES__, __ALL_TRUCKS__

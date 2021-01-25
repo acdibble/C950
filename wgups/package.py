@@ -163,7 +163,7 @@ class Package:
             status = ANSICodes.blue(self.Status.AT_HUB)
 
         info = [f'id: {self.id}', f'address: {self.address}',
-                f'status: {status}', f'deadline: {minutes_to_clock(self.deadline)}']
+                f'status: {status}', f'deadline: {self.formatted_deadline()}']
 
         if (self.delivered_at or float('inf')) <= time:
             info.append(

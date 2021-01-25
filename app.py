@@ -1,3 +1,5 @@
+import sys
+from wgups.truck import Truck
 from wgups.package import Package
 from datastructures.hashmap import HashMap
 from utils import clock_to_minutes
@@ -7,6 +9,7 @@ Please select an option from the list:
     1. Get info on a specific package
     2. Get info on all packages
     3. Get one-liner info on all packages
+    4. Get info on truck travel distance
 '''
 
 
@@ -14,7 +17,7 @@ def get_input(prompt: str) -> str:
     try:
         return input(f'{prompt}\n> ')
     except EOFError:
-        exit(0)
+        sys.exit(0)
 
 
 def print_package(package: Package, time: int) -> None:
@@ -28,7 +31,7 @@ def print_package(package: Package, time: int) -> None:
     print()
 
 
-def start_app(packages: HashMap[str, Package]) -> None:
+def start_app(packages: HashMap[str, Package], trucks: list[Truck]) -> None:
     print('Welcome to WGUPS Package Tracking.')
     while True:
         selection = get_input(instructions)
@@ -37,12 +40,14 @@ def start_app(packages: HashMap[str, Package]) -> None:
             break
 
         time = 0
-        while time == 0:
-            try:
-                time = clock_to_minutes(
-                    get_input('Please enter a time in the format of HH:MM'))
-            except:
-                continue
+        if selection != '4':
+            while time == 0:
+                try:
+                    string = get_input(
+                        'Please enter a time in the format of HH:MM')
+                    time = clock_to_minutes(string)
+                except Exception:
+                    continue
 
         if selection == '1':
             while not (pkg_num := get_input('Please enter a valid package ID')) in packages:
@@ -58,3 +63,8 @@ def start_app(packages: HashMap[str, Package]) -> None:
             package_list.sort(key=lambda p: p.id)
             for package in package_list:
                 print(package.info(time))
+
+        elif selection == '4':
+            for truck in trucks:
+                print(
+                    f'Truck {truck.number} traveled {truck.miles_traveled} miles')
