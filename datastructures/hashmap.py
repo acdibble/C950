@@ -1,4 +1,4 @@
-from typing import Generator, Generic, TypeVar
+from typing import Generator, Generic, Optional, TypeVar
 
 Key = TypeVar('Key')
 Value = TypeVar('Value')
@@ -17,7 +17,7 @@ def gen_primes() -> Generator[int, None, None]:
 
 
 class HashMap(Generic[Key, Value]):
-    __max_bucket_size = 5
+    __max_bucket_size = 2
     __storage: list[list[tuple[Key, Value]]]
 
     def __init__(self) -> None:
@@ -41,12 +41,12 @@ class HashMap(Generic[Key, Value]):
         if len(bucket) >= self.__max_bucket_size:
             self.__resize()
 
-    def get(self, key: Key) -> Value:
+    def get(self, key: Key) -> Optional[Value]:
         for (bucket_key, value) in self.__get_bucket(key):
             if bucket_key == key:
                 return value
 
-        raise KeyError
+        return None
 
     def __get_bucket(self, key: Key) -> list[tuple[Key, Value]]:
         index = hash(key) % self.__storage_size

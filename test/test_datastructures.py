@@ -8,15 +8,15 @@ class TestMap(unittest.TestCase):
         m = HashMap[int, int]()
         m.put(1, 2)
         self.assertEqual(
-            m._Map__storage,
-            [[], [(1, 2)], [], [], [], [], [], [], [], []]
+            m._HashMap__storage,
+            [[], [(1, 2)]]
         )
         self.assertEqual(m.size, 1)
 
         m.put(1, 3)
         self.assertEqual(
-            m._Map__storage,
-            [[], [(1, 3)], [], [], [], [], [], [], [], []]
+            m._HashMap__storage,
+            [[], [(1, 3)]]
         )
         self.assertEqual(m.size, 1)
 

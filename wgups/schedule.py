@@ -3,7 +3,7 @@ from utils import debug, minutes_to_clock
 from wgups.truck import Truck
 from wgups.place import Place
 from wgups.package import Package
-from datastructures import Graph
+from datastructures import Graph, HashMap
 import csv
 
 HUB = 'HUB'
@@ -11,7 +11,7 @@ base_time = 8 * 60
 
 __ALL_TRUCKS__: list[Truck]
 __ALL_PACKAGES__: list[Package]
-__GRAPH__: Graph[Union[Place, str]]()
+__GRAPH__: Graph[Union[Place, str]]
 
 
 def all_delivered() -> bool:
@@ -30,7 +30,7 @@ def find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
     return cast(Package, closest)
 
 
-def deliver_packages(trucks: list[Truck]):
+def deliver(trucks: list[Truck]):
     for truck in trucks:
         truck.run_delivery(__GRAPH__)
         debug(truck.number, truck.location(),
@@ -46,7 +46,7 @@ def distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
         shortest = float('inf')
         closest = None
         for truck in trucks:
-            if p.available_for(truck) and not truck.full():
+            if not truck.full() and p.available_for(truck):
                 dist = __GRAPH__.distance_between(truck.location(), p.address)
                 if dist < shortest:
                     shortest = dist
@@ -56,7 +56,7 @@ def distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
             closest.load_package(p)
 
 
-def load_priority_packages(trucks: list[Truck]):
+def deliver_priority_packages(trucks: list[Truck], destination_package_map: HashMap[str, list[Package]]):
     priority_packages = [p for p in __ALL_PACKAGES__ if any([p.priority(
         t.get_time()) for t in trucks]) and any([p.available_for(t) for t in trucks])]
 
@@ -82,15 +82,17 @@ def load_priority_packages(trucks: list[Truck]):
                     if pkg in priority_packages:
                         priority_packages.remove(pkg)
                     truck.load_package(pkg)
-                    for p in [p for p in __ALL_PACKAGES__ if p.address == pkg.address and p.available_for(truck)]:
-                        if not truck.full():
+                    same_dest_packages = destination_package_map.get(
+                        pkg.address) or []
+                    for p in same_dest_packages:
+                        if not truck.full() and p.available_for(truck):
                             truck.load_package(p)
 
 
-def load_packages(trucks: list[Truck]) -> None:
+def deliver_packages(trucks: list[Truck]) -> None:
     remaining_packages = [p for p in __ALL_PACKAGES__ if not p.is_delivered()]
     distribute_packages(remaining_packages, trucks)
-    deliver_packages(trucks)
+    deliver(trucks)
 
 
 def schedule_delivery() -> tuple[list[Package], list[Truck]]:
@@ -101,9 +103,16 @@ def schedule_delivery() -> tuple[list[Package], list[Truck]]:
     __ALL_PACKAGES__ = []
     __GRAPH__ = Graph[Union[Place, str]]()
 
+    destination_package_map = HashMap[str, list[Package]]()
+
     with open('packages.csv') as f:
         for row in csv.reader(f, delimiter=';'):
-            __ALL_PACKAGES__.append(Package(*row))
+            new_package = Package(*row)
+            __ALL_PACKAGES__.append(new_package)
+            if (package_list := destination_package_map.get(new_package.address)) == None:
+                package_list: list[Package] = []
+                destination_package_map.put(new_package.address, package_list)
+            package_list.append(new_package)
 
     for p in __ALL_PACKAGES__:
         for dep in p.dependent_packages:
@@ -119,16 +128,16 @@ def schedule_delivery() -> tuple[list[Package], list[Truck]]:
             place = Place(name, address)
             __GRAPH__.add_vertex(place)
             places.append(place)
-            for i in range(len(dists)):
-                __GRAPH__.add_edge(place, places[i], float(dists[i]))
+            for (i, dist) in enumerate(dists):
+                __GRAPH__.add_edge(place, places[i], float(dist))
 
     while not all_delivered():
         priority_remaining = True
         while priority_remaining:
-            load_priority_packages(__ALL_TRUCKS__)
+            deliver_priority_packages(__ALL_TRUCKS__, destination_package_map)
             if priority_remaining := any([not truck.empty() for truck in __ALL_TRUCKS__]):
-                deliver_packages(__ALL_TRUCKS__)
+                deliver(__ALL_TRUCKS__)
 
-        load_packages(__ALL_TRUCKS__)
+        deliver_packages(__ALL_TRUCKS__)
 
     return __ALL_PACKAGES__, __ALL_TRUCKS__
