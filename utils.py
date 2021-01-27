@@ -37,7 +37,7 @@ def clock_to_minutes(clock: str) -> int:
 
 
 def debug(*args) -> None:
-    if os.environ.get('DEBUG') == 'true':
+    if 'DEBUG' in os.environ:
         print(*args)
 
 

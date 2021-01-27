@@ -57,46 +57,28 @@ def __distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
     Attempts to distribute packages between the trucks to create the shortest
     possible route for the given packages and trucks
     """
-    for p in packages:
-        shortest = float('inf')
-        closest = None
+    should_break = False
+    while not should_break:
+        should_break = True
         for truck in trucks:
-            if not truck.full() and p.available_for(truck):
-                dist = __GRAPH__.distance_between(truck.location(), p.address)
-                if dist < shortest:
-                    shortest = dist
-                    closest = truck
+            if truck.full():
+                continue
+            shortest = float('inf')
+            closest = None
+            for p in packages:
+                if p.available_for(truck):
+                    dist = __GRAPH__.distance_between(
+                        truck.location(), p.address)
+                    if dist < shortest:
+                        shortest = dist
+                        closest = p
 
-        if closest is not None:
-            closest.load_package(p)
+            if closest is not None:
+                truck.load_package(closest)
+                should_break = False
 
-    # TODO: validate validity
-    # """
-    # Attempts to distribute packages between the trucks to create the shortest
-    # possible route for the given packages and trucks
-    # """
-    # should_break = False
-    # while not should_break:
-    #     should_break = True
-    #     for truck in trucks:
-    #         if truck.full():
-    #             continue
-    #         shortest = float('inf')
-    #         closest = None
-    #         for p in packages:
-    #             if p.available_for(truck):
-    #                 dist = __GRAPH__.distance_between(
-    #                     truck.location(), p.address)
-    #                 if dist < shortest:
-    #                     shortest = dist
-    #                     closest = p
-
-    #         if closest is not None:
-    #             truck.load_package(closest)
-    #             should_break = False
-
-    #     if should_break:
-    #         break
+        if should_break:
+            break
 
 
 def __deliver_priority_packages(trucks: list[Truck], destination_package_map: HashMap[str, list[Package]]):

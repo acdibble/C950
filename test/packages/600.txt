@@ -1,5 +1,5 @@
 id: 1	address: 195 W Oakland Ave (84115)	status: Status.DELIVERED	deadline: 10:30	delivered at: 8:40	delivered on time: True
-id: 2	address: 2530 S 500 E (84106)	status: Status.DELIVERED	deadline: EOD	delivered at: 9:42	delivered on time: True
+id: 2	address: 2530 S 500 E (84106)	status: Status.EN_ROUTE	deadline: EOD
 id: 3	address: 233 Canyon Rd (84103)	status: Status.EN_ROUTE	deadline: EOD
 id: 4	address: 380 W 2880 S (84115)	status: Status.DELIVERED	deadline: EOD	delivered at: 8:37	delivered on time: True
 id: 5	address: 410 S State St (84111)	status: Status.DELIVERED	deadline: EOD	delivered at: 9:04	delivered on time: True
@@ -19,9 +19,9 @@ id: 18	address: 1488 4800 S (84123)	status: Status.EN_ROUTE	deadline: EOD
 id: 19	address: 177 W Price Ave (84115)	status: Status.DELIVERED	deadline: EOD	delivered at: 8:31	delivered on time: True
 id: 20	address: 3595 Main St (84115)	status: Status.DELIVERED	deadline: 10:30	delivered at: 8:29	delivered on time: True
 id: 21	address: 3595 Main St (84115)	status: Status.DELIVERED	deadline: EOD	delivered at: 8:29	delivered on time: True
-id: 22	address: 6351 S 900 E (84121)	status: Status.EN_ROUTE	deadline: EOD
+id: 22	address: 6351 S 900 E (84121)	status: Status.DELIVERED	deadline: EOD	delivered at: 9:51	delivered on time: True
 id: 23	address: 5100 S 2700 W (84118)	status: Status.EN_ROUTE	deadline: EOD
-id: 24	address: 5025 State St (84107)	status: Status.EN_ROUTE	deadline: EOD
+id: 24	address: 5025 State St (84107)	status: Status.DELIVERED	deadline: EOD	delivered at: 9:41	delivered on time: True
 id: 25	address: 5383 S 900 E #104 (84117)	status: Status.DELIVERED	deadline: 10:30	delivered at: 9:16	delivered on time: True
 id: 26	address: 5383 S 900 E #104 (84117)	status: Status.DELIVERED	deadline: EOD	delivered at: 9:16	delivered on time: True
 id: 27	address: 1060 Dalton Ave S (84104)	status: Status.EN_ROUTE	deadline: EOD

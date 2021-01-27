@@ -1,8 +1,8 @@
+import os
 from app import start_app
 from wgups.package import Package
 from datastructures.hashmap import HashMap
 from wgups.schedule import schedule_delivery
-
 
 package_map = HashMap[str, Package]()
 packages, trucks = schedule_delivery()
