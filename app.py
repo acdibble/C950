@@ -14,6 +14,9 @@ Please select an option from the list:
 
 
 def get_input(prompt: str) -> str:
+    """
+    Adds a prompt to the input and captures any EOF error and quits the app
+    """
     try:
         return input(f'{prompt}\n> ')
     except EOFError:
@@ -32,6 +35,9 @@ def print_package(package: Package, time: int) -> None:
 
 
 def start_app(packages: HashMap[str, Package], trucks: list[Truck]) -> None:
+    """
+    Starts the command-line app for retrieving information between
+    """
     print('Welcome to WGUPS Package Tracking.')
     while True:
         selection = get_input(instructions)

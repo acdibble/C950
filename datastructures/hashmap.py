@@ -13,6 +13,8 @@ def gen_primes() -> Generator[int, None, None]:
         while any(map(lambda p: prime % p == 0, primes)):
             prime += 1
 
+        if prime / 2 in primes:
+            primes.remove(prime / 2)
         primes.append(prime)
 
 
@@ -28,20 +30,33 @@ class HashMap(Generic[Key, Value]):
         self.__can_resize = True
 
     def put(self, key: Key, value: Value) -> None:
+        """
+        Inserts a key-value pair into the map or updates an existing key-value
+        pair if it is already present
+        """
         bucket = self.__get_bucket(key)
-        for i in range(len(bucket)):
-            if bucket[i][0] == key:
+        # look for the key in the current bucket
+        for (i, (k, _)) in enumerate(bucket):
+            if k == key:
                 bucket[i] = (key, value)
                 break
+        # if the key isn't found, we insert it into the bucket and increment
+        # the size of the map
         else:
             bucket.append((key, value))
             if self.__can_resize:
                 self.size += 1
 
-        if len(bucket) >= self.__max_bucket_size:
+        # if the length of the current bucket exceeds the maximum size, we
+        # resize the map to accommodate the new size
+        if len(bucket) > self.__max_bucket_size:
             self.__resize()
 
     def get(self, key: Key) -> Optional[Value]:
+        """
+        Retrieve a value from the map given a key or None if the key doesn't
+        exist
+        """
         for (bucket_key, value) in self.__get_bucket(key):
             if bucket_key == key:
                 return value

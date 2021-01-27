@@ -1,5 +1,4 @@
 from typing import Iterable, Union, cast
-from utils import debug, minutes_to_clock
 from wgups.truck import Truck
 from wgups.place import Place
 from wgups.package import Package
@@ -14,11 +13,7 @@ __ALL_PACKAGES__: list[Package]
 __GRAPH__: Graph[Union[Place, str]]
 
 
-def all_delivered() -> bool:
-    return all([p.is_delivered() for p in __ALL_PACKAGES__])
-
-
-def find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
+def __find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
     shortest_dist = float('inf')
     closest = None
     for p in pkgs:
@@ -30,18 +25,38 @@ def find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
     return cast(Package, closest)
 
 
-def deliver(trucks: list[Truck]):
+wrong_address_packages = []
+
+
+def __dispatch_trucks(trucks: list[Truck]):
+    """
+    Goes over the list of all trucks and calls the delivery method, additionally
+    it checks to see if enough time has passed for any packages with a wrong
+    address to have their corrected address available and updates them if so
+    """
+    global wrong_address_packages
+    if wrong_address_packages is not None and len(wrong_address_packages) == 0:
+        wrong_address_packages = [
+            p for p in __ALL_PACKAGES__ if p.wrong_address]
+
     for truck in trucks:
         truck.run_delivery(__GRAPH__)
-        debug(truck.number, truck.location(),
-              round(truck.miles_traveled, 1), minutes_to_clock(truck.get_time()))
 
-        for p in __ALL_PACKAGES__:
-            if p.correct_address_available(truck.get_time()):
-                p.update_address()
+        if wrong_address_packages is not None:
+            for p in wrong_address_packages:
+                if p.correct_address_available(truck.get_time()):
+                    p.update_address()
+                    wrong_address_packages.remove(p)
+
+    if wrong_address_packages is not None and len(wrong_address_packages) == 0:
+        wrong_address_packages = None
 
 
-def distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
+def __distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
+    """
+    Attempts to distribute packages between the trucks to create the shortest
+    possible route for the given packages and trucks
+    """
     for p in packages:
         shortest = float('inf')
         closest = None
@@ -55,47 +70,84 @@ def distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
         if closest is not None:
             closest.load_package(p)
 
+    # TODO: validate validity
+    # """
+    # Attempts to distribute packages between the trucks to create the shortest
+    # possible route for the given packages and trucks
+    # """
+    # should_break = False
+    # while not should_break:
+    #     should_break = True
+    #     for truck in trucks:
+    #         if truck.full():
+    #             continue
+    #         shortest = float('inf')
+    #         closest = None
+    #         for p in packages:
+    #             if p.available_for(truck):
+    #                 dist = __GRAPH__.distance_between(
+    #                     truck.location(), p.address)
+    #                 if dist < shortest:
+    #                     shortest = dist
+    #                     closest = p
 
-def deliver_priority_packages(trucks: list[Truck], destination_package_map: HashMap[str, list[Package]]):
-    priority_packages = [p for p in __ALL_PACKAGES__ if any([p.priority(
-        t.get_time()) for t in trucks]) and any([p.available_for(t) for t in trucks])]
+    #         if closest is not None:
+    #             truck.load_package(closest)
+    #             should_break = False
 
-    trucks.sort(key=lambda t: t.get_time())
+    #     if should_break:
+    #         break
+
+
+def __deliver_priority_packages(trucks: list[Truck], destination_package_map: HashMap[str, list[Package]]):
+    priority_packages = set(filter(lambda p: any([p.priority(
+        t.get_time()) and p.available_for(t) for t in trucks]), __ALL_PACKAGES__))
+    # load the trucks that have the fewest miles traveled first
+    trucks.sort(key=lambda t: t.miles_traveled)
     for truck in trucks:
+        # load the truck until it's full or there are no more packages remaining
         while not truck.full() and len(priority_packages) != 0:
-            closest = find_closest(priority_packages, truck.location())
-            if not closest.at_hub():
-                priority_packages.remove(closest)
-                continue
-            if closest is None:
-                break
+            # find the package whose destination is closest to the trucks
+            # current location
+            closest = __find_closest(priority_packages, truck.location())
+            # get all dependencies of that package
             deps = closest.dependencies
             for dep in deps:
                 deps = deps.union(cast(set[Package], dep.dependencies))
             deps.add(closest)
+            # ensure we have capacity the package and its dependencies
             if truck.capacity() >= len(deps):
                 while len(deps) != 0:
-                    pkg = find_closest(deps, truck.location())
-                    deps.remove(pkg)
+                    # find the closest package of the dependencies, for most
+                    # packages this will be the original closes package
+                    pkg = __find_closest(deps, truck.location())
+                    deps.discard(pkg)
+                    # make sure this wasn't processed already
                     if not pkg.at_hub():
                         continue
-                    if pkg in priority_packages:
-                        priority_packages.remove(pkg)
+                    # add the package and remove it from the priority packages
+                    # to ensure it's not loaded twice
+                    priority_packages.discard(pkg)
                     truck.load_package(pkg)
-                    same_dest_packages = destination_package_map.get(
-                        pkg.address) or []
-                    for p in same_dest_packages:
+                    # while we still have space, load any packages that are
+                    # being delivered to the same address as the previously-
+                    # loaded package
+                    for p in (destination_package_map.get(pkg.address) or []):
                         if not truck.full() and p.available_for(truck):
+                            priority_packages.discard(p)
                             truck.load_package(p)
 
 
-def deliver_packages(trucks: list[Truck]) -> None:
+def __deliver_remaining_packages(trucks: list[Truck]) -> None:
     remaining_packages = [p for p in __ALL_PACKAGES__ if not p.is_delivered()]
-    distribute_packages(remaining_packages, trucks)
-    deliver(trucks)
+    __distribute_packages(remaining_packages, trucks)
+    __dispatch_trucks(trucks)
 
 
 def schedule_delivery() -> tuple[list[Package], list[Truck]]:
+    """
+    The method responsible for figuring out how to best deliver the packages.
+    """
     global __ALL_TRUCKS__
     global __ALL_PACKAGES__
     global __GRAPH__
@@ -105,6 +157,9 @@ def schedule_delivery() -> tuple[list[Package], list[Truck]]:
 
     destination_package_map = HashMap[str, list[Package]]()
 
+    # parses the packages from the .csv into a list of package objects and a map
+    # containing the all the packages for a destination, this is used later to
+    # load as many packages as possible that have the same destination
     with open('packages.csv') as f:
         for row in csv.reader(f, delimiter=';'):
             new_package = Package(*row)
@@ -114,6 +169,8 @@ def schedule_delivery() -> tuple[list[Package], list[Truck]]:
                 destination_package_map.put(new_package.address, package_list)
             package_list.append(new_package)
 
+    # after parsing all the packages, we go over the list and build sets of
+    # dependent packages to fulfill that constraint
     for p in __ALL_PACKAGES__:
         for dep in p.dependent_packages:
             other = __ALL_PACKAGES__[dep - 1]
@@ -121,6 +178,10 @@ def schedule_delivery() -> tuple[list[Package], list[Truck]]:
             other.dependent_packages.add(p.id)
             p.dependencies.add(other)
 
+    # we parse the the distances csv into a place objects. we use the the street
+    # address and zip code to build a unique identifier for each place. this id
+    # is used to look it up in the graph so we can use a string or the place
+    # object itself for that lookup
     with open('distances.csv') as f:
         places: list[Place] = []
 
@@ -131,13 +192,17 @@ def schedule_delivery() -> tuple[list[Package], list[Truck]]:
             for (i, dist) in enumerate(dists):
                 __GRAPH__.add_edge(place, places[i], float(dist))
 
-    while not all_delivered():
+    # finally we iterate over all packages until they are delivered
+    while not all([p.is_delivered() for p in __ALL_PACKAGES__]):
         priority_remaining = True
+        # we start with the priority packages to make sure they all arrive
+        # before their deadline
         while priority_remaining:
-            deliver_priority_packages(__ALL_TRUCKS__, destination_package_map)
+            __deliver_priority_packages(
+                __ALL_TRUCKS__, destination_package_map)
             if priority_remaining := any([not truck.empty() for truck in __ALL_TRUCKS__]):
-                deliver(__ALL_TRUCKS__)
+                __dispatch_trucks(__ALL_TRUCKS__)
 
-        deliver_packages(__ALL_TRUCKS__)
+        __deliver_remaining_packages(__ALL_TRUCKS__)
 
     return __ALL_PACKAGES__, __ALL_TRUCKS__

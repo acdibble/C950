@@ -5,19 +5,30 @@ import re
 dirs = {'north': 'N', 'south': 'S', 'east': 'E', 'west': 'W', '\n': ' '}
 
 
-def replace(m: Match[str]) -> str:
-    return dirs[m.group(0).lower()]
+def __direction_to_letter(m: Match[str]) -> str:
+    match = m.group(0)[0]
+    return ' ' if match == '\n' else match.upper()
 
 
 def normalize_address(address: str) -> str:
-    return re.sub(r'(?i)(north|south|east|west|\n)', replace, address.strip())
+    """
+    Normalizes an address so that it is uniformly displayed in both packages and
+    places.
+    """
+    return re.sub(r'(?i)(north|south|east|west|\n)', __direction_to_letter, address.strip())
 
 
 def minutes_to_clock(minutes: float) -> str:
+    """
+    Formats integer minutes to a clock format
+    """
     return f'{int(minutes / 60)}:{(int(minutes) % 60):02}'
 
 
 def clock_to_minutes(clock: str) -> int:
+    """
+    Converts a clock display to an integer amount of minutes
+    """
     hours, minutes = list(map(int, clock.split(':')))
     if 0 <= hours < 24 and 0 <= minutes < 60:
         return hours * 60 + minutes

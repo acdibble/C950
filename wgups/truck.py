@@ -15,13 +15,13 @@ class Truck:
         Truck.__number += 1
         return Truck.__number
 
-    miles_traveled: float = 0
-    packages: list[Package]
-    number: int
-
     @staticmethod
     def __calc_time(time: float) -> float:
         return (8 * 60) + (time / 18 * 60)
+
+    miles_traveled: float = 0
+    packages: list[Package]
+    number: int
 
     def __init__(self) -> None:
         self.number = self.__get_number()
@@ -50,6 +50,12 @@ class Truck:
         return 'HUB' if self.empty() else self.packages[-1].address
 
     def run_delivery(self, graph: Graph[Union[Place, str]]) -> None:
+        """
+        Calculates the distance traveled while delivering all the packages on
+        the truck. Iterates over every package, calculating the distance from
+        the current location to the next location, and returns to the hub at
+        the end
+        """
         previous: str = ''
         current: str = 'HUB'
         for pkg in self.packages:

@@ -30,7 +30,7 @@ class Package:
     __loaded_at: Optional[float] = None
     __delivered_by: Optional[int] = None
     delivered_at: Optional[float] = None
-    __wrong_address = False
+    wrong_address = False
     __available_at = 0.0
     dependencies: set[Package]
     dependent_packages: set[int]
@@ -68,7 +68,11 @@ class Package:
         return self.at_hub() and self.deadline < EOD and self.__available_at <= time
 
     def available_for(self, truck: Truck, exclude: set[Package] = set()) -> bool:
-        if self.__wrong_address:
+        """
+        Determines if this package (and recursively its dependencies) is
+        available for delivery by the current truck
+        """
+        if self.wrong_address:
             return False
 
         if self.__available_at > truck.get_time():
@@ -88,6 +92,9 @@ class Package:
         return deps_available
 
     def __parse_note(self, notes: str) -> None:
+        """
+        Parses the note included with the package for special information
+        """
         if len(notes) == 0:
             pass
         elif match := re.search(r'\d?\d:\d\d [ap]m', notes):
@@ -100,7 +107,7 @@ class Package:
         else:
             self.address = ''
             self.__available_at = self.parse_time('10:20 am')
-            self.__wrong_address = True
+            self.wrong_address = True
 
     def set_en_route(self, truck: Truck) -> None:
         if self.__status == self.Status.EN_ROUTE:
@@ -124,15 +131,20 @@ class Package:
         return self.__status == self.Status.AT_HUB
 
     def correct_address_available(self, time: float):
-        return self.__wrong_address and self.__available_at <= time
+        return self.wrong_address and self.__available_at <= time
 
     def update_address(self):
-        self.__wrong_address = False
+        self.wrong_address = False
         self.address = '410 S State St (84111)'
         self.street_address = '410 S State St'
         self.zipcode = '84111'
 
     def status(self, time: int) -> str:
+        """
+        Gets the delivery status of the package at the given time
+
+        @param time The time to retrieve that status at
+        """
         if self.__available_at > time:
             return f'Delayed, package available at {minutes_to_clock(self.__available_at)}'
 
@@ -148,12 +160,20 @@ class Package:
         return f'Delivered at {minutes_to_clock(delivered_at)} by truck {delivered_by}'
 
     def formatted_deadline(self) -> str:
+        """
+        Formats the deadline in a human-friendly format
+        """
         if self.deadline == EOD:
             return 'EOD'
 
         return minutes_to_clock(self.deadline)
 
     def info(self, time: int) -> str:
+        """
+        Returns a string of tab-delimited info on the package for the given time
+
+        @param time The time at which to get package status
+        """
         status = ''
         if (self.delivered_at or float('inf')) <= time:
             status = ANSICodes.green(self.Status.DELIVERED)
