@@ -1,18 +1,23 @@
-## A
+A. Identify a named self-adjusting algorithm (e.g., “Nearest Neighbor
+algorithm,” “Greedy algorithm”) that you used to create your program to deliver
+the packages.
 
-In order to load the packages onto the trucks I used a combination of a
-nearest-neighbor algorithm and a greedy algorithm, i.e. after loading a package
-onto one truck, the algorithm will load that truck until there are no more
-available packages (greedy), and it will choose the next package according to
-the distance between the next package and the previously-loaded package
-(nearest-neighbor).
+    In order to load the packages onto the trucks I used a combination of a
+    nearest-neighbor algorithm and a greedy algorithm, i.e. after loading a
+    package onto one truck, the algorithm will load that truck until there are
+    no more available packages (greedy), and it will choose the next package
+    according to the distance between the next package and the previously-loaded
+    package (nearest-neighbor).
 
-## B. Write an overview of your program, in which you do the following:
+B. Write an overview of your program, in which you do the following:
 
 1.  Explain the algorithm’s logic using pseudocode.
 
 2.  Describe the programming environment you used to create the Python
     application.
+
+    To complete this application, I used Python 3.9 and Visual Studio Code along
+    with the Pylance extension and its dependencies.
 
 3.  Evaluate the space-time complexity of each major segment of the program, and
     the entire program, using big-O notation.
@@ -32,8 +37,12 @@ Map,” “WGUPS Distance Table,” and the “WGUPS Package File.”
 1.  Create an identifying comment within the first line of a file named
     “main.py” that includes your first name, last name, and student ID.
 
+[X]
+
 2.  Include comments in your code to explain the process and the flow of the
     program.
+
+[X]
 
 D. Identify a self-adjusting data structure, such as a hash table, that can be
 used with the algorithm identified in part A to store the package data.
@@ -63,13 +72,15 @@ or delivered. Delivery status must include the time.)
     9:35 a.m. and 10:25 a.m.
 
 10:00 AM screenshot:
+
 ![](assets/10-00-status.png)
 
 3.  Provide screenshots to show the status of all packages at a time between
     12:03 p.m. and 1:12 p.m.
 
-1:00 PM screenshot:
-![](assets/13-00-status.png)
+12:00 PM screenshot:
+
+![](assets/12-00-status.png)
 
 H. Provide a screenshot or screenshots showing successful completion of the
 code, free from runtime errors or warnings, that includes the total mileage

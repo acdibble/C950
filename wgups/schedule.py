@@ -131,9 +131,12 @@ def __parse_packages() -> tuple[list[Package], HashMap[str, list[Package]]]:
     parses the packages from the .csv into a list of package objects and a map
     containing the all the packages for a destination, this is used later to
     load as many packages as possible that have the same destination
+
+    Time complexity is O(n)
     """
-    packages = []
+    packages: list[Package] = []
     destination_package_map = HashMap[str, list[Package]]()
+    dependency_map = HashMap[int, set[int]]()
     with open('packages.csv') as f:
         for row in csv.reader(f, delimiter=';'):
             new_package = Package(*row)
@@ -142,11 +145,18 @@ def __parse_packages() -> tuple[list[Package], HashMap[str, list[Package]]]:
                 package_list: list[Package] = []
                 destination_package_map.put(new_package.address, package_list)
             package_list.append(new_package)
+            for dep in new_package.dependent_packages:
+                if (dep_set := dependency_map.get(new_package.id)) is None:
+                    dep_set = set()
+                    dependency_map.put(new_package.id, dep_set)
+                dep_set.add(dep)
 
     # after parsing all the packages, we go over the list and build sets of
-    # dependent packages to fulfill that constraint
-    for p in packages:
-        for dep in p.dependent_packages:
+    # dependent packages to fulfill that constraint, this has to happen
+    # after parsing the packages to ensure all co-dependencies are met
+    for (package_id, deps) in dependency_map:
+        p = packages[package_id - 1]
+        for dep in deps:
             other = packages[dep - 1]
             other.dependencies.add(p)
             other.dependent_packages.add(p.id)
@@ -161,6 +171,8 @@ def __parse_distances() -> Graph[Union[Place, str]]:
     address and zip code to build a unique identifier for each place. this id
     is used to look it up in the graph so we can use a string or the place
     object itself for that lookup
+
+    Time complexity is O(n * (n/2)) = O(n^2) as it is essentially a summation
     """
     graph = Graph[Union[Place, str]]()
     with open('distances.csv') as f:

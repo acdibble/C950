@@ -1,4 +1,7 @@
-import os
+#
+# Andrew Dibble - 001467899
+#
+
 from app import start_app
 from wgups.package import Package
 from datastructures.hashmap import HashMap
