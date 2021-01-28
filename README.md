@@ -93,7 +93,7 @@ or delivered. Delivery status must include the time.)
 
 9:00 AM screenshot:
 
-![](assets/9-00-status.png)
+![](assets/09-00-status.png)
 
 2.  Provide screenshots to show the status of all packages at a time between
     9:35 a.m. and 10:25 a.m.
