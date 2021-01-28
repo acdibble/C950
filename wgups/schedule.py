@@ -1,3 +1,4 @@
+from datastructures.hashtable import HashTable
 from typing import Iterable, Union, cast
 from wgups.truck import Truck
 from wgups.place import Place
@@ -9,7 +10,7 @@ HUB = 'HUB'
 base_time = 8 * 60
 
 __ALL_TRUCKS__: list[Truck]
-__ALL_PACKAGES__: list[Package]
+__ALL_PACKAGES__: HashTable[Package]
 __GRAPH__: Graph[Union[Place, str]]
 
 
@@ -121,12 +122,13 @@ def __deliver_priority_packages(destination_package_map: HashMap[str, list[Packa
 
 
 def __deliver_remaining_packages() -> None:
-    remaining_packages = [p for p in __ALL_PACKAGES__ if not p.is_delivered()]
+    remaining_packages = [
+        p for p in __ALL_PACKAGES__ if not p.is_delivered()]
     __distribute_packages(remaining_packages)
     __dispatch_trucks()
 
 
-def __parse_packages() -> tuple[list[Package], HashMap[str, list[Package]]]:
+def __parse_packages() -> tuple[HashTable[Package], HashMap[str, list[Package]]]:
     """
     parses the packages from the .csv into a list of package objects and a map
     containing the all the packages for a destination, this is used later to
@@ -134,33 +136,25 @@ def __parse_packages() -> tuple[list[Package], HashMap[str, list[Package]]]:
 
     Time complexity is O(n)
     """
-    packages: list[Package] = []
+    packages = HashTable[Package]()
     destination_package_map = HashMap[str, list[Package]]()
-    dependency_map = HashMap[int, set[int]]()
+    dependency_map = HashMap[int, set[Package]]()
     with open('packages.csv') as f:
         for row in csv.reader(f, delimiter=';'):
             new_package = Package(*row)
-            packages.append(new_package)
+            packages.put(new_package)
             if (package_list := destination_package_map.get(new_package.address)) is None:
                 package_list: list[Package] = []
                 destination_package_map.put(new_package.address, package_list)
             package_list.append(new_package)
             for dep in new_package.dependent_packages:
-                if (dep_set := dependency_map.get(new_package.id)) is None:
+                if (dep_set := dependency_map.get(dep)) is None:
                     dep_set = set()
-                    dependency_map.put(new_package.id, dep_set)
-                dep_set.add(dep)
-
-    # after parsing all the packages, we go over the list and build sets of
-    # dependent packages to fulfill that constraint, this has to happen
-    # after parsing the packages to ensure all co-dependencies are met
-    for (package_id, deps) in dependency_map:
-        p = packages[package_id - 1]
-        for dep in deps:
-            other = packages[dep - 1]
-            other.dependencies.add(p)
-            other.dependent_packages.add(p.id)
-            p.dependencies.add(other)
+                    dependency_map.put(dep, dep_set)
+                dep_set.add(new_package)
+            for pkg in dependency_map.get(new_package.id) or []:
+                pkg.dependencies.add(new_package)
+                new_package.dependencies.add(pkg)
 
     return packages, destination_package_map
 

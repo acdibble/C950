@@ -1,21 +1,8 @@
-from typing import Generator, Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
+from utils import gen_primes
 
 Key = TypeVar('Key')
 Value = TypeVar('Value')
-
-
-def gen_primes() -> Generator[int, None, None]:
-    primes = [2]
-
-    while True:
-        prime = primes[-1]
-        yield prime
-        while any(map(lambda p: prime % p == 0, primes)):
-            prime += 1
-
-        if prime / 2 in primes:
-            primes.remove(prime / 2)
-        primes.append(prime)
 
 
 class HashMap(Generic[Key, Value]):
@@ -84,10 +71,10 @@ class HashMap(Generic[Key, Value]):
         self.__can_resize = True
 
     def __contains__(self, key: Key):
-        for bucket in self.__storage:
-            for (k, _) in bucket:
-                if k == key:
-                    return True
+        bucket = self.__get_bucket(key)
+        for (k, _) in bucket:
+            if k == key:
+                return True
 
         return False
 

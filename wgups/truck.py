@@ -22,6 +22,7 @@ class Truck:
     miles_traveled: float = 0
     packages: list[Package]
     number: int
+    deliveries_performed = 0
 
     def __init__(self) -> None:
         self.number = self.__get_number()
@@ -56,13 +57,14 @@ class Truck:
         the current location to the next location, and returns to the hub at
         the end
         """
+        self.deliveries_performed += 1
         previous: str = ''
         current: str = 'HUB'
         for pkg in self.packages:
             previous = current
             current = pkg.address
             self.miles_traveled += graph.distance_between(previous, current)
-            pkg.set_delivered(self.get_time())
+            pkg.set_delivered(self)
             info = f'truck {self.number}'
             info += f' delivered package {pkg.id}'
             info += f' at {minutes_to_clock(pkg.delivered_at)}'

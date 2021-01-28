@@ -63,3 +63,15 @@ class ANSICodes:
     @staticmethod
     def red(line: Any) -> str:
         return f'{ANSICodes.RED}{line}{ANSICodes.CLEAR}'
+
+
+def gen_primes():
+    primes = [2]
+    while True:
+        prime = primes[-1]
+        yield prime
+
+        while any(map(lambda p: prime % p == 0, primes)):
+            prime += 1
+
+        primes.append(prime)

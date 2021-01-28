@@ -34,6 +34,7 @@ class Package:
     __available_at = 0.0
     dependencies: set[Package]
     dependent_packages: set[int]
+    __delivery_number = 0
 
     def __init__(self, id: str, address: str, city: str, state: str, zipcode: str, deadline: str, mass: str, notes: str):
         self.dependent_packages = set[int]()
@@ -118,11 +119,12 @@ class Package:
         self.__loaded_at = truck.get_time()
         self.__status = self.Status.EN_ROUTE
 
-    def set_delivered(self, time: float) -> None:
+    def set_delivered(self, truck: Truck) -> None:
         if self.__status == self.Status.DELIVERED:
             raise Exception
         self.__status = self.Status.DELIVERED
-        self.delivered_at = time
+        self.delivered_at = truck.get_time()
+        self.__delivery_number = truck.deliveries_performed
 
     def is_delivered(self) -> bool:
         return self.__status == self.Status.DELIVERED
@@ -187,10 +189,17 @@ class Package:
 
         if (self.delivered_at or float('inf')) <= time:
             info.append(
+                f'loaded at: {minutes_to_clock(self.__loaded_at)}')
+            info.append(
                 f'delivered at: {minutes_to_clock(self.delivered_at)}')
             on_time = self.delivered_at < self.deadline
             colored = ANSICodes.green(
                 on_time) if on_time else ANSICodes.red(on_time)
             info.append(f'delivered on time: {colored}')
+            info.append(
+                f'delivered by truck {self.__delivered_by} in delivery number {self.__delivery_number}')
 
         return str.join('\t', info)
+
+    def __hash__(self) -> int:
+        return hash(self.id)
