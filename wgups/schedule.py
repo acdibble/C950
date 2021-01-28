@@ -29,7 +29,7 @@ def __find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
 wrong_address_packages = []
 
 
-def __dispatch_trucks():
+def __dispatch_trucks() -> int:
     """
     Goes over the list of all trucks and calls the delivery method, additionally
     it checks to see if enough time has passed for any packages with a wrong
@@ -40,7 +40,10 @@ def __dispatch_trucks():
         wrong_address_packages = [
             p for p in __ALL_PACKAGES__ if p.wrong_address]
 
+    packages_delivered = 0
+
     for truck in __ALL_TRUCKS__:
+        packages_delivered += len(truck.packages)
         truck.run_delivery(__GRAPH__)
 
         if wrong_address_packages is not None:
@@ -52,15 +55,17 @@ def __dispatch_trucks():
     if wrong_address_packages is not None and len(wrong_address_packages) == 0:
         wrong_address_packages = None
 
+    return packages_delivered
+
 
 def __distribute_packages(packages: Iterable[Package]):
     """
     Attempts to distribute packages between the trucks to create the shortest
     possible route for the given packages and trucks
     """
-    should_break = False
-    while not should_break:
-        should_break = True
+    done = False
+    while not done:
+        done = True
         for truck in __ALL_TRUCKS__:
             if truck.full():
                 continue
@@ -68,6 +73,7 @@ def __distribute_packages(packages: Iterable[Package]):
             closest = None
             for p in packages:
                 if p.available_for(truck):
+                    done = False
                     dist = __GRAPH__.distance_between(
                         truck.location(), p.address)
                     if dist < shortest:
@@ -76,9 +82,8 @@ def __distribute_packages(packages: Iterable[Package]):
 
             if closest is not None:
                 truck.load_package(closest)
-                should_break = False
 
-        if should_break:
+        if done:
             break
 
 
@@ -121,11 +126,10 @@ def __deliver_priority_packages(destination_package_map: HashMap[str, list[Packa
                             truck.load_package(p)
 
 
-def __deliver_remaining_packages() -> None:
-    remaining_packages = [
-        p for p in __ALL_PACKAGES__ if not p.is_delivered()]
+def __deliver_remaining_packages() -> int:
+    remaining_packages = [p for p in __ALL_PACKAGES__ if not p.is_delivered()]
     __distribute_packages(remaining_packages)
-    __dispatch_trucks()
+    return __dispatch_trucks()
 
 
 def __parse_packages() -> tuple[HashTable[Package], HashMap[str, list[Package]]]:
@@ -193,16 +197,18 @@ def schedule_delivery() -> tuple[list[Package], list[Truck]]:
     __ALL_PACKAGES__, destination_package_map = __parse_packages()
     __GRAPH__ = __parse_distances()
 
-    # finally we iterate over all packages until they are delivered
-    while not all([p.is_delivered() for p in __ALL_PACKAGES__]):
-        priority_remaining = True
-        # we start with the priority packages to make sure they all arrive
-        # before their deadline
-        while priority_remaining:
-            __deliver_priority_packages(destination_package_map)
-            if priority_remaining := any([not truck.empty() for truck in __ALL_TRUCKS__]):
-                __dispatch_trucks()
+    # make sure all priority packages are fully delivered before delivering any
+    # others
+    priority_remaining = True
+    while priority_remaining:
+        __deliver_priority_packages(destination_package_map)
+        if priority_remaining := any([not truck.empty() for truck in __ALL_TRUCKS__]):
+            __dispatch_trucks()
 
-        __deliver_remaining_packages()
+    # continue delivering packages until none remain
+    remaining_package_count = sum(
+        map(lambda p: 0 if p.is_delivered() else 1, __ALL_PACKAGES__))
+    while remaining_package_count != 0:
+        remaining_package_count -= __deliver_remaining_packages()
 
     return __ALL_PACKAGES__, __ALL_TRUCKS__

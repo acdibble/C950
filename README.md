@@ -13,6 +13,26 @@ B. Write an overview of your program, in which you do the following:
 
 1.  Explain the algorithm’s logic using pseudocode.
 
+```
+initialize Trucks
+initialize Packages
+initialize Graph
+
+While not all Packages delivered
+    While priority packages remain
+        For each Truck of Trucks
+            Until Truck is full or no priority packages remain
+                Load Truck with nearest priority
+
+            Deliver priority packages
+
+    While packages available for delivery
+        For each Truck of Trucks
+            Load package closest to the previously-loaded package's destination
+
+
+```
+
 2.  Describe the programming environment you used to create the Python
     application.
 
@@ -25,7 +45,17 @@ B. Write an overview of your program, in which you do the following:
 4.  Explain the capability of your solution to scale and adapt to a growing
     number of packages.
 
+    My solution doesn't assume a fixed number of packages, trucks, or
+    destinations, which means it can continue to grow with packages until the
+    algorithms themselves are no longer efficient enough to quickly enough
+    determine how to deliver the packages.
+
 5.  Discuss why the software is efficient and easy to maintain.
+
+    The software is efficient because it is able quickly determine a short route
+    for both trucks to travel while still meeting all the requirements. It is
+    easy to maintain due to the presence of comments and static typing which
+    helps reduce type errors.
 
 6.  Discuss the strengths and weaknesses of the self-adjusting data structures
     (e.g., the hash table).
@@ -91,12 +121,31 @@ by doing the following:
 
 1.  Describe at least two strengths of the algorithm used in the solution.
 
+    The algorithm is scalable. It makes no assumptions about the number of
+    trucks, packages, or destinations, and it should therefore be able to
+    accommodate an increase in any of them.
+
+    The algorithm finds an efficient solution for the given requirements in that
+    both trucks must travel fewer than 80 miles to deliver all the packages.
+
 2.  Verify that the algorithm used in the solution meets all requirements in the
     scenario.
+
+    The requirements have been met and this is verifiable by using option 3 in
+    the app. There you can find loading times, delivery times, which truck
+    delivered the package and with what other packages the package was
+    delivered.
+
+    Additionally there are errors in place that will throw if a requirement
+    isn't met at runtime and there are unit tests validating the requirements as
+    well.
 
 3.  Identify two other named algorithms, different from the algorithm
     implemented in the solution, that would meet the requirements in the
     scenario.
+
+    The Dijkstra algorithm could be used to generate a more intelligent delivery
+    path than simply always taking the next closest package.
 
 a. Describe how each algorithm identified in part I3 is different from the
 algorithm used in the solution.
