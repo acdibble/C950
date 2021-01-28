@@ -18,19 +18,16 @@ initialize Trucks
 initialize Packages
 initialize Graph
 
-While not all Packages delivered
-    While priority packages remain
-        For each Truck of Trucks
-            Until Truck is full or no priority packages remain
-                Load Truck with nearest priority
+While priority packages remain
+    For each Truck of Trucks
+        Until Truck is full or no priority packages remain
+            Load Truck with nearest priority
 
-            Deliver priority packages
+        Deliver priority packages
 
-    While packages available for delivery
-        For each Truck of Trucks
-            Load package closest to the previously-loaded package's destination
-
-
+While packages available for delivery
+    For each Truck of Trucks
+        Load package closest to the previously-loaded package's destination
 ```
 
 2.  Describe the programming environment you used to create the Python
