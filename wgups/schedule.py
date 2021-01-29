@@ -1,9 +1,8 @@
-from datastructures.hashtable import HashTable
 from typing import Iterable, Union, cast
 from wgups.truck import Truck
 from wgups.place import Place
 from wgups.package import Package
-from datastructures import Graph, HashMap
+from datastructures import Graph, HashMap, HashTable
 import csv
 
 HUB = 'HUB'
@@ -186,7 +185,7 @@ def __parse_distances() -> Graph[Union[Place, str]]:
     return graph
 
 
-def schedule_delivery() -> tuple[list[Package], list[Truck]]:
+def schedule_delivery() -> tuple[HashTable[Package], list[Truck]]:
     """
     The method responsible for figuring out how to best deliver the packages.
     """
