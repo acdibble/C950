@@ -2,14 +2,14 @@ from typing import Iterable, Union, cast
 from wgups.truck import Truck
 from wgups.place import Place
 from wgups.package import Package
-from datastructures import Graph, HashMap, HashTable
+from datastructures import Graph, HashMap
 import csv
 
 HUB = 'HUB'
 base_time = 8 * 60
 
 __ALL_TRUCKS__: list[Truck]
-__ALL_PACKAGES__: HashTable[Package]
+__ALL_PACKAGES__: HashMap[int, Package]
 __GRAPH__: Graph[Union[Place, str]]
 
 
@@ -28,7 +28,7 @@ def __find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
 wrong_address_packages = []
 
 
-def __dispatch_trucks(trucks: list[Truck]) -> int:
+def __dispatch_trucks() -> int:
     """
     Goes over the list of all trucks and calls the delivery method, additionally
     it checks to see if enough time has passed for any packages with a wrong
@@ -37,11 +37,11 @@ def __dispatch_trucks(trucks: list[Truck]) -> int:
     global wrong_address_packages
     if wrong_address_packages is not None and len(wrong_address_packages) == 0:
         wrong_address_packages = [
-            p for p in __ALL_PACKAGES__ if p.wrong_address]
+            p[1] for p in __ALL_PACKAGES__ if p[1].wrong_address]
 
     packages_delivered = 0
 
-    for truck in trucks:
+    for truck in __ALL_TRUCKS__:
         packages_delivered += len(truck.packages)
         truck.run_delivery(__GRAPH__)
 
@@ -57,7 +57,7 @@ def __dispatch_trucks(trucks: list[Truck]) -> int:
     return packages_delivered
 
 
-def __distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
+def __distribute_packages(packages: Iterable[Package]):
     """
     Attempts to distribute packages between the trucks to create the shortest
     possible route for the given packages and trucks
@@ -65,7 +65,7 @@ def __distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
     done = False
     while not done:
         done = True
-        for truck in trucks:
+        for truck in __ALL_TRUCKS__:
             if truck.full():
                 continue
             shortest = float('inf')
@@ -87,8 +87,8 @@ def __distribute_packages(packages: Iterable[Package], trucks: list[Truck]):
 
 
 def __deliver_priority_packages(destination_package_map: HashMap[str, list[Package]]):
-    priority_packages = set(filter(lambda p: any([p.priority(
-        t.get_time()) and p.available_for(t) for t in __ALL_TRUCKS__]), __ALL_PACKAGES__))
+    priority_packages = set([p[1] for p in __ALL_PACKAGES__ if any([p[1].priority(
+        t.get_time()) and p[1].available_for(t) for t in __ALL_TRUCKS__])])
     # load the trucks that have the fewest miles traveled first
     __ALL_TRUCKS__.sort(key=lambda t: t.miles_traveled)
     for truck in __ALL_TRUCKS__:
@@ -125,13 +125,14 @@ def __deliver_priority_packages(destination_package_map: HashMap[str, list[Packa
                             truck.load_package(p)
 
 
-def __deliver_remaining_packages(trucks: list[Truck]) -> int:
-    remaining_packages = [p for p in __ALL_PACKAGES__ if not p.is_delivered()]
-    __distribute_packages(remaining_packages, trucks)
-    return __dispatch_trucks(trucks)
+def __deliver_remaining_packages() -> int:
+    remaining_packages = [p[1]
+                          for p in __ALL_PACKAGES__ if not p[1].is_delivered()]
+    __distribute_packages(remaining_packages)
+    return __dispatch_trucks()
 
 
-def __parse_packages() -> tuple[HashTable[Package], HashMap[str, list[Package]]]:
+def __parse_packages() -> tuple[HashMap[int, Package], HashMap[str, list[Package]]]:
     """
     parses the packages from the .csv into a list of package objects and a map
     containing the all the packages for a destination, this is used later to
@@ -139,13 +140,13 @@ def __parse_packages() -> tuple[HashTable[Package], HashMap[str, list[Package]]]
 
     Time complexity is O(n)
     """
-    packages = HashTable[Package]()
+    packages = HashMap[int, Package]()
     destination_package_map = HashMap[str, list[Package]]()
     dependency_map = HashMap[int, set[Package]]()
     with open('packages.csv') as f:
         for row in csv.reader(f, delimiter=';'):
             new_package = Package(*row)
-            packages.put(new_package)
+            packages.put(new_package.id, new_package)
             if (package_list := destination_package_map.get(new_package.address)) is None:
                 package_list: list[Package] = []
                 destination_package_map.put(new_package.address, package_list)
@@ -185,7 +186,7 @@ def __parse_distances() -> Graph[Union[Place, str]]:
     return graph
 
 
-def schedule_delivery() -> tuple[HashTable[Package], list[Truck]]:
+def schedule_delivery() -> tuple[HashMap[int, Package], list[Truck]]:
     """
     The method responsible for figuring out how to best deliver the packages.
     """
@@ -202,12 +203,12 @@ def schedule_delivery() -> tuple[HashTable[Package], list[Truck]]:
     while priority_remaining:
         __deliver_priority_packages(destination_package_map)
         if priority_remaining := any([not truck.empty() for truck in __ALL_TRUCKS__]):
-            __deliver_remaining_packages(__ALL_TRUCKS__)
+            __deliver_remaining_packages()
 
     # continue delivering packages until none remain
     remaining_package_count = sum(
-        map(lambda p: 0 if p.is_delivered() else 1, __ALL_PACKAGES__))
+        map(lambda p: 0 if p[1].is_delivered() else 1, __ALL_PACKAGES__))
     while remaining_package_count != 0:
-        remaining_package_count -= __deliver_remaining_packages(__ALL_TRUCKS__)
+        remaining_package_count -= __deliver_remaining_packages()
 
     return __ALL_PACKAGES__, __ALL_TRUCKS__

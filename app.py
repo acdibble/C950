@@ -23,6 +23,17 @@ def get_input(prompt: str) -> str:
         sys.exit(0)
 
 
+def get_int_input(prompt: str) -> int:
+    """
+    Adds a prompt to the input and captures any EOF error and quits the app
+    """
+    while True:
+        try:
+            return int(get_input(prompt))
+        except ValueError:
+            print('Please enter an integer value')
+
+
 def print_package(package: Package, time: int) -> None:
     print(f'Package ID: {package.id}')
     print(f'Current status: {package.status(time)}')
@@ -34,7 +45,7 @@ def print_package(package: Package, time: int) -> None:
     print()
 
 
-def start_app(packages: HashMap[str, Package], trucks: list[Truck]) -> None:
+def start_app(packages: HashMap[int, Package], trucks: list[Truck]) -> None:
     """
     Starts the command-line app for retrieving information between
     """
@@ -56,8 +67,9 @@ def start_app(packages: HashMap[str, Package], trucks: list[Truck]) -> None:
                     continue
 
         if selection == '1':
-            while not (pkg_num := get_input('Please enter a valid package ID')) in packages:
+            while not (pkg_num := get_int_input('Please enter a valid package ID')) in packages:
                 print(f'Package with ID "{pkg_num}" was not found')
+
             print_package(packages.get(pkg_num), time)
 
         elif selection == '2':
@@ -73,4 +85,4 @@ def start_app(packages: HashMap[str, Package], trucks: list[Truck]) -> None:
         elif selection == '4':
             for truck in trucks:
                 print(
-                    f'Truck {truck.number} traveled {truck.miles_traveled} miles')
+                    f'Truck {truck.number} traveled {round(truck.miles_traveled, 1)} miles')

@@ -25,11 +25,16 @@ While priority packages remain
         Until Truck is full or no priority packages remain
             Load Truck with nearest priority
 
-        Deliver priority packages
+    For each Truck of Trucks
+        Load package closest to the previously-loaded package's destination
+
+    Deliver packages
 
 While packages available for delivery
     For each Truck of Trucks
         Load package closest to the previously-loaded package's destination
+
+    Deliver packages
 ```
 
 2.  Describe the programming environment you used to create the Python
@@ -73,7 +78,8 @@ The hashing method used to insert items into the the hash table is not perfect
 and it causes a lot of collisions in buckets which causes the underlying linear
 storage to grow much larger than it needs to be.
 
-
+It however allows for an average insertion and lookup time-complexity of O(1).
+The table also allows for easy O(n) iteration over all items
 ```
 
 C. Write an original program to deliver all the packages, meeting all
@@ -94,16 +100,18 @@ D. Identify a self-adjusting data structure, such as a hash table, that can be
 used with the algorithm identified in part A to store the package data.
 
 ```
-Hash map
+Hash table
 ```
 
 1.  Explain how your data structure accounts for the relationship between the
     data points you are storing.
 
 ```
-The hash map is used to store packages with matching destinations. When a
+The hash table is used to store packages with matching destinations. When a
 package is loaded on a truck, other packages with the same destination are
 checked to see if they are available to be loaded on the truck.
+
+It is also used to store all the packages so they can be looked up by their ID.
 ```
 
 G. Provide an interface for the user to view the status and info (as listed in
@@ -130,13 +138,15 @@ or delivered. Delivery status must include the time.)
 3.  Provide screenshots to show the status of all packages at a time between
     12:03 p.m. and 1:12 p.m.
 
-12:00 PM screenshot:
+12:03 PM screenshot:
 
 ![](assets/12-00-status.png)
 
 H. Provide a screenshot or screenshots showing successful completion of the
 code, free from runtime errors or warnings, that includes the total mileage
 traveled by all trucks.
+
+![](assets/miles-traveled.png)
 
 I. Justify the core algorithm you identified in part A and used in the solution
 by doing the following:
@@ -169,12 +179,17 @@ met at runtime and there are unit tests validating the requirements as well.
     scenario.
 
 ```
-The Dijkstra algorithm could be used to generate a more intelligent delivery
-path than simply always taking the next closest package.
+Dijkstra algorithm, A* search algorithm
 ```
 
 a. Describe how each algorithm identified in part I3 is different from the
 algorithm used in the solution.
+
+```
+The Dijkstra and A* search algorithms both traverse the graph to find the
+shortest distance between two vertices. The solution I used just uses the given
+distances between all the vertices without any optimizations.
+```
 
 J. Describe what you would do differently, other than the two algorithms
 identified in I3, if you did this project again.
@@ -183,13 +198,20 @@ identified in I3, if you did this project again.
 If I were to do this project again, I would look for a more general solution to
 the problem. The current solution works well for the limited input given and I'm
 not sure what edge cases would arise as the packages to be delivered increase.
-Also the solution might not scale well with a large number of packages.
+Also the solution might not scale well with a large number of packages. Lastly,
+I used a very naive algorithm to determine the next package to deliver. The
+routes could be shortened by finding shorter paths between two points.
 ```
 
 K. Justify the data structure you identified in part D by doing the following:
 
 1.  Verify that the data structure used in the solution meets all requirements
     in the scenario.
+
+```
+The hash table has an insert and lookup function that work correctly and without
+any errors.
+```
 
 a. Explain how the time needed to complete the look-up function is affected by
 changes in the number of packages to be delivered.
@@ -221,18 +243,26 @@ will remain O(1) as the number of cities grows. The space grows at O(n^2) as
 each city references the other.
 ```
 
-2.  Identify two other data structures that could meet the same requirements in
+1.  Identify two other data structures that could meet the same requirements in
     the scenario.
 
 ```
-Linked list,
+Linked list, priority queue
 ```
 
 a. Describe how each data structure identified in part K2 is different from the
 data structure used in the solution.
 
-L. Acknowledge sources, using in-text citations and references, for content that
-is quoted, paraphrased, or summarized.
+```
+A linked list is a linear storage data structure. Its average lookup is O(n)
+because its stored elements need to be iterated over in order to find the
+desired value. If appending to the end of the list, insertion is O(n) unless
+there is a tail pointer. If a new value is prepended, insertion is O(1).
 
-M. Demonstrate professional communication in the content and presentation of
-your submission.
+A priority queue could help simplify the delivery of packages by assigning a
+priority to the package before putting it in the queue. This could be done two
+ways:
+
+O(1) retrieval and O(n) insertion if elements are sorted at insertion time
+O(n) retrieval and O(1) insertion if elements are not sorted at insertion time
+```

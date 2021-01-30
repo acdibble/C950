@@ -176,28 +176,29 @@ class Package:
 
         @param time The time at which to get package status
         """
-        status = ''
+        info = [f'id: {self.id}', f'address: {self.address}']
         if (self.delivered_at or float('inf')) <= time:
-            status = ANSICodes.green(self.Status.DELIVERED)
+            info.append(ANSICodes.green(self.Status.DELIVERED))
         elif (self.__loaded_at or float('inf')) <= time:
-            status = ANSICodes.cyan(self.Status.EN_ROUTE)
+            info.append(ANSICodes.cyan(self.Status.EN_ROUTE))
         else:
-            status = ANSICodes.blue(self.Status.AT_HUB)
+            info.append(ANSICodes.blue(self.Status.AT_HUB))
 
-        info = [f'id: {self.id}', f'address: {self.address}',
-                f'status: {status}', f'deadline: {self.formatted_deadline()}']
+        info.append(f'deadline: {self.formatted_deadline()}')
 
-        if (self.delivered_at or float('inf')) <= time:
+        if (self.__loaded_at or float('inf')) <= time:
             info.append(
                 f'loaded at: {minutes_to_clock(self.__loaded_at)}')
+            info.append(
+                f'onto truck {self.__delivered_by} in delivery number {self.__delivery_number}')
+
+        if (self.delivered_at or float('inf')) <= time:
             info.append(
                 f'delivered at: {minutes_to_clock(self.delivered_at)}')
             on_time = self.delivered_at < self.deadline
             colored = ANSICodes.green(
                 on_time) if on_time else ANSICodes.red(on_time)
             info.append(f'delivered on time: {colored}')
-            info.append(
-                f'delivered by truck {self.__delivered_by} in delivery number {self.__delivery_number}')
 
         return str.join('\t', info)
 
