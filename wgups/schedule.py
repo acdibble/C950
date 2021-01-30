@@ -14,6 +14,10 @@ __GRAPH__: Graph[Union[Place, str]]
 
 
 def __find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
+    """
+    Time complexity: O(n)
+    Space complexity: O(1)
+    """
     shortest_dist = float('inf')
     closest = None
     for p in pkgs:
@@ -25,7 +29,7 @@ def __find_closest(pkgs: Iterable[Package], loc: Union[str, Place]) -> Package:
     return cast(Package, closest)
 
 
-wrong_address_packages = []
+wrong_address_packages = None
 
 
 def __dispatch_trucks() -> int:
@@ -33,9 +37,13 @@ def __dispatch_trucks() -> int:
     Goes over the list of all trucks and calls the delivery method, additionally
     it checks to see if enough time has passed for any packages with a wrong
     address to have their corrected address available and updates them if so
+
+    Time complexity: O(m * n) -> O(2 * n) -> O(n)
+    Space complexity: O(1)
+    Space complexity: O(1)
     """
     global wrong_address_packages
-    if wrong_address_packages is not None and len(wrong_address_packages) == 0:
+    if wrong_address_packages is None:
         wrong_address_packages = [
             p[1] for p in __ALL_PACKAGES__ if p[1].wrong_address]
 
@@ -45,14 +53,11 @@ def __dispatch_trucks() -> int:
         packages_delivered += len(truck.packages)
         truck.run_delivery(__GRAPH__)
 
-        if wrong_address_packages is not None:
+        if len(wrong_address_packages) != 0:
             for p in wrong_address_packages:
                 if p.correct_address_available(truck.get_time()):
                     p.update_address()
                     wrong_address_packages.remove(p)
-
-    if wrong_address_packages is not None and len(wrong_address_packages) == 0:
-        wrong_address_packages = None
 
     return packages_delivered
 
@@ -61,10 +66,13 @@ def __distribute_packages(packages: Iterable[Package]):
     """
     Attempts to distribute packages between the trucks to create the shortest
     possible route for the given packages and trucks
+
+    Time complexity: O(m * n) -> O(2 * n) -> O(n)
+    Space complexity: O(1)
     """
-    done = False
-    while not done:
-        done = True
+    count = float('inf')
+    while count > 2:
+        count = 0
         for truck in __ALL_TRUCKS__:
             if truck.full():
                 continue
@@ -72,7 +80,7 @@ def __distribute_packages(packages: Iterable[Package]):
             closest = None
             for p in packages:
                 if p.available_for(truck):
-                    done = False
+                    count += 1
                     dist = __GRAPH__.distance_between(
                         truck.location(), p.address)
                     if dist < shortest:
@@ -82,11 +90,12 @@ def __distribute_packages(packages: Iterable[Package]):
             if closest is not None:
                 truck.load_package(closest)
 
-        if done:
-            break
-
 
 def __deliver_priority_packages(destination_package_map: HashMap[str, list[Package]]):
+    """
+    Time complexity: O(n)
+    Space complexity: O(n)
+    """
     priority_packages = set([p[1] for p in __ALL_PACKAGES__ if any([p[1].priority(
         t.get_time()) and p[1].available_for(t) for t in __ALL_TRUCKS__])])
     # load the trucks that have the fewest miles traveled first
@@ -126,8 +135,11 @@ def __deliver_priority_packages(destination_package_map: HashMap[str, list[Packa
 
 
 def __deliver_remaining_packages() -> int:
-    remaining_packages = [p[1]
-                          for p in __ALL_PACKAGES__ if not p[1].is_delivered()]
+    """
+    Time complexity: O(n) + O(n) + O(n) -> O(n)
+    Space complexity: O(n)
+    """
+    remaining_packages = [p[1] for p in __ALL_PACKAGES__ if p[1].at_hub()]
     __distribute_packages(remaining_packages)
     return __dispatch_trucks()
 
@@ -138,7 +150,8 @@ def __parse_packages() -> tuple[HashMap[int, Package], HashMap[str, list[Package
     containing the all the packages for a destination, this is used later to
     load as many packages as possible that have the same destination
 
-    Time complexity is O(n)
+    Time complexity: O(n)
+    Space complexity: O(n)
     """
     packages = HashMap[int, Package]()
     destination_package_map = HashMap[str, list[Package]]()
@@ -170,7 +183,8 @@ def __parse_distances() -> Graph[Union[Place, str]]:
     is used to look it up in the graph so we can use a string or the place
     object itself for that lookup
 
-    Time complexity is O(n * (n/2)) = O(n^2) as it is essentially a summation
+    Time complexity: O(n * (n/2)) = O(n^2) as it is essentially a summation
+    Space complexity: O(n^2)
     """
     graph = Graph[Union[Place, str]]()
     with open('distances.csv') as f:
@@ -189,17 +203,25 @@ def __parse_distances() -> Graph[Union[Place, str]]:
 def schedule_delivery() -> tuple[HashMap[int, Package], list[Truck]]:
     """
     The method responsible for figuring out how to best deliver the packages.
+
+    n = number of packages
+    m = number of places
+    Time complexity: O(m^2) + O(n)
+    Space complexity: O(m^2) + O(n)
     """
     global __ALL_TRUCKS__
     global __ALL_PACKAGES__
     global __GRAPH__
     __ALL_TRUCKS__ = [Truck(), Truck()]
-    __ALL_PACKAGES__, destination_package_map = __parse_packages()
-    __GRAPH__ = __parse_distances()
+    __ALL_PACKAGES__, destination_package_map = __parse_packages()  # O(n)
+    __GRAPH__ = __parse_distances()  # O(m^2)
 
-    # make sure all priority packages are fully delivered before delivering any
-    # others
+    # m is number of places, n is number of packages
+    # complexity to here -> O(m^2) + O(n)
+
+    # make sure all priority packages are fully delivered
     priority_remaining = True
+    # time complexity of while block: O(n) + O(n) -> O(n)
     while priority_remaining:
         __deliver_priority_packages(destination_package_map)
         if priority_remaining := any([not truck.empty() for truck in __ALL_TRUCKS__]):
@@ -208,6 +230,7 @@ def schedule_delivery() -> tuple[HashMap[int, Package], list[Truck]]:
     # continue delivering packages until none remain
     remaining_package_count = sum(
         map(lambda p: 0 if p[1].is_delivered() else 1, __ALL_PACKAGES__))
+    # time complexity of while block: O(n)
     while remaining_package_count != 0:
         remaining_package_count -= __deliver_remaining_packages()
 

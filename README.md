@@ -51,6 +51,10 @@ Memory: 16 GB 2400 MHz DDR4
 3.  Evaluate the space-time complexity of each major segment of the program, and
     the entire program, using big-O notation.
 
+```
+Space-time complexities are found in inline pydocs.
+```
+
 4.  Explain the capability of your solution to scale and adapt to a growing
     number of packages.
 
