@@ -140,7 +140,7 @@ or delivered. Delivery status must include the time.)
 
 12:03 PM screenshot:
 
-![](assets/12-00-status.png)
+![](assets/12-03-status.png)
 
 H. Provide a screenshot or screenshots showing successful completion of the
 code, free from runtime errors or warnings, that includes the total mileage
